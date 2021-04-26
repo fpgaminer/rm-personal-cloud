@@ -1,8 +1,13 @@
 [package]
-authors = ["fpgaminer"]
+authors = ["fpgaminer <fpgaminer@bitcoin-mining.com>"]
 edition = "2018"
 name = "rm-personal-cloud"
 version = "0.1.0"
+description = "A replacement cloud server for the reMarkable tablet that you can run and manage yourself."
+repository = "https://github.com/fpgaminer/rm-personal-cloud"
+readme = "README.md"
+keywords = ["cloud", "remarkable"]
+license = "MIT"
 
 [dependencies]
 actix = "0.10.0"
