@@ -1,0 +1,27 @@
+# Works around a current bug that results in "value too large for defined" errors when doing multi-arch builds (https://github.com/docker/buildx/issues/395)
+FROM --platform=$BUILDPLATFORM rust:1.51 AS sources
+
+WORKDIR /usr/src/rm-personal-cloud
+RUN cargo init
+COPY Cargo.* ./
+RUN mkdir -p ./.cargo && cargo vendor > ./.cargo/config
+
+
+FROM rust:1.51 as builder
+
+WORKDIR /usr/src/rm-personal-cloud
+COPY src ./src
+COPY Cargo.* ./
+COPY schema.sql ./
+COPY --from=sources /usr/src/rm-personal-cloud/.cargo ./.cargo
+COPY --from=sources /usr/src/rm-personal-cloud/vendor ./vendor
+
+RUN cargo install --offline --path .
+
+
+FROM debian:buster-slim
+
+COPY --from=builder /usr/local/cargo/bin/rm-personal-cloud /usr/local/bin/rm-personal-cloud
+
+ENTRYPOINT ["rm-personal-cloud"]
+CMD ["--bind", "0.0.0.0", "--https-port", "8084", "--ssl-cert", "/ssl/cert.pem", "--ssl-key", "/ssl/key.pem", "--hostname", "local.appspot.com", "--db", "/data/db.sqlite"]
