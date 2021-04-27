@@ -16,12 +16,12 @@ COPY schema.sql ./
 COPY --from=sources /usr/src/rm-personal-cloud/.cargo ./.cargo
 COPY --from=sources /usr/src/rm-personal-cloud/vendor ./vendor
 
-#RUN cargo install --offline --path .
+RUN cargo install --offline --path .
 
 
 FROM debian:buster-slim
 
-#COPY --from=builder /usr/local/cargo/bin/rm-personal-cloud /usr/local/bin/rm-personal-cloud
+COPY --from=builder /usr/local/cargo/bin/rm-personal-cloud /usr/local/bin/rm-personal-cloud
 
 LABEL org.opencontainers.image.source=https://github.com/fpgaminer/rm-personal-cloud
 
