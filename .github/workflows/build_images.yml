@@ -26,5 +26,5 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: latest
+          tags: ${{ github.repository_owner }}/rm-personal-cloud:latest
           file: ./Dockerfile.multiarch
