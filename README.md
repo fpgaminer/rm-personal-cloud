@@ -10,9 +10,9 @@ Note that I developed this mostly for my own use, so I am unlikely to accept Git
 First, a MITM proxy needs to be installed on the tablet so we can redirect its cloud connection to our personal server.  Note that since our personal cloud server uses SSL the connection remains secure to the tablet.
 
 On device:
-`wget https://github.com/ddvk/rmfakecloud-proxy/releases/download/v0.0.2/installer.sh`
-`chmod +x ./installer.sh`
-`./installer.sh install`
+* `wget https://github.com/ddvk/rmfakecloud-proxy/releases/download/v0.0.2/installer.sh`
+* `chmod +x ./installer.sh`
+* `./installer.sh install`
 
 When asked for cloud url enter the URL for the personal cloud server, e.g. "https://rm-personal-cloud.example.com:8084"
 
