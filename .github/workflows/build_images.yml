@@ -1,6 +1,4 @@
 name: 'build_images'
-permissions:
-  packages: write
 
 on:
   push:
