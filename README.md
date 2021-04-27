@@ -21,7 +21,7 @@ When asked for cloud url enter the URL for the personal cloud server, e.g. "http
 
 Example execution:
 
-`RUST_BACKTRACE=1 cargo run -- --bind 0.0.0.0 --https-port 8084 --ssl-cert test.cert --ssl-key test.key --db db.sqlite --hostname local.appspot.com`
+`RUST_BACKTRACE=1 cargo run -- --bind 0.0.0.0 --ssl-cert test.cert --ssl-key test.key --db db.sqlite`
 
 
 ## Development
@@ -34,14 +34,14 @@ Point the tablet's proxy at, e.g., `https://localhost.example.com`
 
 Then establish a reverse SSH tunnel: `ssh -R 8084:127.0.0.1:8084 root@reMarkable.local`
 
-Run the development server: `RUST_BACKTRACE=1 cargo run -- --bind 127.0.0.1 --https-port 8084 --ssl-cert test.cert --ssl-key test.key --db test.sqlite --hostname local.appspot.com`
+Run the development server: `RUST_BACKTRACE=1 cargo run -- --bind 127.0.0.1 --ssl-cert test.cert --ssl-key test.key --db test.sqlite`
 
 Now the tablet will connect securely to the local development server.
 
 
 ## Testing
 
-Run the server: `RUST_BACKTRACE=1 cargo run -- --bind 127.0.0.1 --https-port 8084 --ssl-cert test.cert --ssl-key test.key --db test.sqlite --hostname localhost.example.com:8084`
+Run the server: `RUST_BACKTRACE=1 cargo run -- --bind 127.0.0.1 --ssl-cert test.cert --ssl-key test.key --db test.sqlite --hostname localhost.example.com:8084`
 
 Run tests: `python test.py`
 

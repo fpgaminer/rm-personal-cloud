@@ -13,7 +13,9 @@ use actix_web::{middleware::Logger, web, App, HttpServer};
 use anyhow::Result;
 use config::ServerConfig;
 use env_logger::Env;
+use log::{error, info};
 use notifications::NotificationServer;
+use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use std::{
@@ -21,6 +23,7 @@ use std::{
 	io::BufReader,
 	net::{IpAddr, SocketAddr},
 	path::PathBuf,
+	thread,
 	time::Duration,
 };
 use structopt::StructOpt;
@@ -57,14 +60,14 @@ struct Opt {
 	#[structopt(long = "ssl-key", parse(from_os_str))]
 	ssl_key_path: PathBuf,
 
-	#[structopt(long = "hostname")]
+	#[structopt(long = "hostname", default_value = "local.appspot.com")]
 	hostname: String,
 
 	#[structopt(long = "bind")]
 	/// Where to listen on (e.g. 0.0.0.0)
 	bind_address: IpAddr,
 
-	#[structopt(long = "https-port")]
+	#[structopt(long = "https-port", default_value = "8084")]
 	https_port: u16,
 }
 
@@ -78,8 +81,8 @@ async fn main() -> Result<(), anyhow::Error> {
 	// Load SSL keys
 	let ssl_config = {
 		let mut ssl_config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
-		let cert_file = &mut BufReader::new(File::open(opt.ssl_cert_path).expect("Unable to read SSL cert"));
-		let key_file = &mut BufReader::new(File::open(opt.ssl_key_path).expect("Unable to read SSL key"));
+		let cert_file = &mut BufReader::new(File::open(&opt.ssl_cert_path).expect("Unable to read SSL cert"));
+		let key_file = &mut BufReader::new(File::open(&opt.ssl_key_path).expect("Unable to read SSL key"));
 		let cert_chain = certs(cert_file).expect("Invalid SSL cert");
 		let mut keys = pkcs8_private_keys(key_file).expect("Invalid SSL key");
 		ssl_config.set_single_cert(cert_chain, keys.remove(0)).expect("Invalid SSL key");
@@ -98,7 +101,7 @@ async fn main() -> Result<(), anyhow::Error> {
 		AdminTokenClaims::new(&server_config),
 	);
 
-	HttpServer::new(move || {
+	let server = HttpServer::new(move || {
 		let logger = Logger::default();
 
 		App::new()
@@ -126,8 +129,39 @@ async fn main() -> Result<(), anyhow::Error> {
 			.default_service(web::route().to(request_logger::default_service))
 	})
 	.bind_rustls(SocketAddr::new(opt.bind_address, opt.https_port), ssl_config)?
-	.run()
-	.await?;
+	.run();
+
+	cert_watcher(opt.ssl_cert_path.clone(), server.clone());
+
+	server.await?;
 
 	Ok(())
+}
+
+
+/// Watches the SSL certificate file and causes the HttpServer to exit when it changes.
+/// We expect some extenral management (e.g. systemd) to restart us, allowing us to reload the cert.
+fn cert_watcher(filepath: PathBuf, server: actix_web::dev::Server) {
+	thread::spawn(move || {
+		let (tx, rx) = std::sync::mpsc::channel();
+		let mut watcher = watcher(tx, Duration::from_secs(10)).expect("Unable to init file watcher");
+
+		watcher
+			.watch(filepath, RecursiveMode::NonRecursive)
+			.expect("Unable to start file watcher");
+
+		loop {
+			match rx.recv() {
+				Ok(DebouncedEvent::Write(_)) | Ok(DebouncedEvent::Create(_)) => {
+					info!("SSL cert file changed. Exitting so that systemd/docker/etc will restart us.");
+					let _ = server.stop(true); // We don't need to await the result
+				}
+				Ok(_) => (),
+				Err(err) => {
+					error!("Error while watching cert file: {:?}", err);
+					break;
+				}
+			}
+		}
+	});
 }
