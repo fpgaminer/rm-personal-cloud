@@ -156,7 +156,7 @@ fn cert_watcher(filepath: PathBuf, server: actix_web::dev::Server) {
 					info!("SSL cert file changed. Exitting so that systemd/docker/etc will restart us.");
 					let _ = server.stop(true); // We don't need to await the result
 				}
-				Ok(_) => (),
+				Ok(x) => info!("Watcher Event: {:?}", x),
 				Err(err) => {
 					error!("Error while watching cert file: {:?}", err);
 					break;
