@@ -106,14 +106,22 @@ pub struct UserTokenClaims {
 
 impl UserTokenClaims {
 	pub fn new(device_token: &DeviceTokenClaims, server_config: &ServerConfig) -> String {
+		Self::new_from_raw(device_token.device_id.clone(), device_token.device_desc.clone(), server_config)
+	}
+
+	pub fn admin_new(_: &ValidatedAdminToken, server_config: &ServerConfig) -> String {
+		Self::new_from_raw("admin".to_owned(), "admin".to_owned(), server_config)
+	}
+
+	fn new_from_raw(device_id: String, device_desc: String, server_config: &ServerConfig) -> String {
 		let now: u64 = Utc::now().timestamp().try_into().expect("Cannot support negative timestamps");
 		let exp = now
 			.checked_add(USER_TOKEN_EXPIRATION)
 			.expect("Unable to represent user token expiration time using a u64");
 
 		let my_claims = UserTokenClaims {
-			device_id: device_token.device_id.clone(),
-			device_desc: device_token.device_desc.clone(),
+			device_id: device_id,
+			device_desc: device_desc,
 			exp: exp,
 			iat: now,
 			iss: "rm-personal-cloud".to_string(),

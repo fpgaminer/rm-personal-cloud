@@ -17,6 +17,20 @@ On device:
 When asked for cloud url enter the URL for the personal cloud server, e.g. "https://rm-personal-cloud.example.com:8084"
 
 
+## Build
+
+Admin WebApp:
+
+* `cd admin-webapp`
+* `npm run build-production`
+
+Server:
+
+* `cargo build --release`
+
+For the webpp, `npm run build` can be used for debug builds, and `npm run watch` can be used for automatic debug builds.
+
+
 ## Running
 
 Example execution:
@@ -53,6 +67,8 @@ Example: `docker run -d --init -p 8084:8084 -v /your/ssl/files:/ssl -v /persista
 You'll need a `cert.pem` and `key.pem` under `/your/ssl/`.  rm-personal-cloud will store all its data in `/persistant/data/db.sqlite`.
 
 
-## New Device Codes
+## Admin Interface
 
-When connecting to the cloud the tablet needs a special authorization code.  `rm-personal-cloud` will print out an admin url on start, which the user can access to generate these authorization codes.  Note that right now the URL that gets printed out is most likely incorrect in production, as it assumes the hostname is the one specified with `--hostname`.  In production that's almost always `local.appspot.com` to make the tablet happy, but obviously that's not a real URL for our server.  You'll need to substitute the server's real hostname to access the admin page.
+`rm-personal-cloud` will print out an admin url on start.  Note that right now the URL that gets printed out is most likely incorrect in production, as it assumes the hostname is the one specified with `--hostname`.  In production that's almost always `local.appspot.com` to make the tablet happy, but obviously that's not a real URL for our server.  You'll need to substitute the server's real hostname to access the admin page.
+
+The admin page can be used to generate the "Device Codes" that the tablet needs during initial setup.  It can also be used to upload files to the cloud, so you can added PDFs or EPUBs to the tablet.

@@ -124,8 +124,7 @@ async fn main() -> Result<(), anyhow::Error> {
 			.service(api::storage::update_status)
 			.service(api::storage::delete)
 			.service(notifications::ws_notifications)
-			.service(api::admin::index)
-			.service(api::admin::new_device_code)
+			.service(api::admin::service())
 			.default_service(web::route().to(request_logger::default_service))
 	})
 	.bind_rustls(SocketAddr::new(opt.bind_address, opt.https_port), ssl_config)?
