@@ -1,0 +1,3 @@
+* Dedupe:  Files should be unzipped.  Then they can be stored as a list of blob ids and associated blobs in the database.  This will help dedupe large files like PDFs.  When downloading, the files will need to be rezipped.  Will have to do a database "upgrade" to transition the old database to the new format.  May also want to compress each individual blob, since, for example, .rm/.lines files can be quite large and highly compressible.
+* Handwriting recognition API (can use Google Cloud or something)
+* Email API
