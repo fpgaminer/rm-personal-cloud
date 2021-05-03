@@ -11,6 +11,8 @@ name = "rm-personal-cloud"
 readme = "README.md"
 repository = "https://github.com/fpgaminer/rm-personal-cloud"
 version = "0.1.0"
+homepage = "https://github.com/fpgaminer/rm-personal-cloud"
+documentation = "https://docs.rs/rm-personal-cloud"
 
 [dependencies]
 actix = "0.10.0"
