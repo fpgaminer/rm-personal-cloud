@@ -13,6 +13,7 @@ repository = "https://github.com/fpgaminer/rm-personal-cloud"
 version = "0.1.0"
 homepage = "https://github.com/fpgaminer/rm-personal-cloud"
 documentation = "https://docs.rs/rm-personal-cloud"
+build = "build.rs"
 
 [dependencies]
 actix = "0.10.0"
@@ -49,3 +50,6 @@ features = [
     "runtime-actix-rustls",
 ]
 version = "0.4"
+
+[build-dependencies]
+ignore = "0.4.17"

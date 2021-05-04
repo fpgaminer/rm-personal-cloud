@@ -1,25 +1,20 @@
-# Build the admin webapp
-FROM node:16 as webapp-builder
-
-WORKDIR /usr/src/app
-COPY admin-webapp/*.json ./
-COPY admin-webapp/*.js ./
-COPY admin-webapp/src ./src
-
-RUN npm install
-RUN npm run build-production
-
-
-# Build the server, copying over the pre-built admin webapp
+# Build the server
 FROM rust:1.51 as builder
 
 WORKDIR /usr/src/rm-personal-cloud
 COPY src ./src
 COPY Cargo.* ./
+COPY build.rs ./
 COPY schema.sql ./
+COPY admin-webapp/*.json ./admin-webapp/
+COPY admin-webapp/*.js ./admin-webapp/
+COPY admin-webapp/src ./admin-webapp/src
 COPY admin-webapp/dist/index.html ./admin-webapp/dist/index.html
-COPY --from=webapp-builder /usr/src/app/dist/*.js ./admin-webapp/dist/
-COPY --from=webapp-builder /usr/src/app/dist/*.map ./admin-webapp/dist/
+
+RUN apt-get update
+RUN apt-get -y install curl gnupg
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+RUN apt-get -y install nodejs
 
 RUN cargo install --path .
 

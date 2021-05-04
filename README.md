@@ -19,16 +19,7 @@ When asked for cloud url enter the URL for the personal cloud server, e.g. "http
 
 ## Build
 
-Admin WebApp:
-
-* `cd admin-webapp`
-* `npm run build-production`
-
-Server:
-
 * `cargo build --release`
-
-For the webpp, `npm run build` can be used for debug builds, and `npm run watch` can be used for automatic debug builds.
 
 
 ## Running
@@ -51,6 +42,8 @@ Then establish a reverse SSH tunnel: `ssh -R 8084:127.0.0.1:8084 root@reMarkable
 Run the development server: `RUST_BACKTRACE=1 cargo run -- --bind 127.0.0.1 --ssl-cert test.cert --ssl-key test.key --db test.sqlite`
 
 Now the tablet will connect securely to the local development server.
+
+A React webapp is included for the admin UI, located under the `admin-webapp` directory.  Cargo builds it automatically and the results get statically baked into the executable.
 
 
 ## Testing
