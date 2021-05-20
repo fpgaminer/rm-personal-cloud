@@ -112,6 +112,7 @@ async fn upload_request(
 				"Message": format!("Version on server is not -1 of what you supplied: Server: {}, Client req: {}", server_version, req.version),
 				"Success": false,
 				"BlobURLPut": "",
+				"BlobURLPutExpires": "0001-01-01T00:00:00Z",
 			}));
 			continue;
 		}
@@ -125,6 +126,7 @@ async fn upload_request(
 			"Message": "",
 			"Success": true,
 			"BlobURLPut": format!("https://{}/storage/{}", server_config.server_host, token),
+			"BlobURLPutExpires": exp,
 		}));
 	}
 
