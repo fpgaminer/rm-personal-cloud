@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS files (
 	deleted INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_files_id_version ON files(id,version);
+CREATE INDEX IF NOT EXISTS idx_files_deleted ON files (deleted);
 
 
 CREATE TABLE IF NOT EXISTS request_logs (
