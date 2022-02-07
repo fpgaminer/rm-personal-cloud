@@ -1,5 +1,5 @@
 # Build the server
-FROM rust:1.51 as builder
+FROM rust:latest as builder
 
 WORKDIR /usr/src/rm-personal-cloud
 COPY src ./src
