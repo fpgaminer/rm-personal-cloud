@@ -20,7 +20,7 @@ RUN cargo install --path .
 
 
 # Build the final image
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 COPY --from=builder /usr/local/cargo/bin/rm-personal-cloud /usr/local/bin/rm-personal-cloud
 
