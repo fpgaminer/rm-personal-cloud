@@ -17,24 +17,24 @@ build = "build.rs"
 
 [dependencies]
 actix = "0.10.0"
-actix-http = "2.2.1"
+actix-http = "2.2.2"
 actix-web-actors = "3.0.0"
-anyhow = "1.0.40"
-env_logger = "0.8.3"
+anyhow = "1.0.57"
+env_logger = "0.8.4"
 futures = "0.3"
 hex = "0.4.3"
 jsonwebtoken = "7.2.0"
-log = "0.4.14"
-notify = "4.0.16"
-rand = "0.8.3"
+log = "0.4.17"
+notify = "4.0.17"
+rand = "0.8.5"
 ring = "0.16.20"
 rustls = "0.18.1"
-serde_json = "1.0.64"
-structopt = "0.3.21"
+serde_json = "1.0.81"
+structopt = "0.3.26"
 
 [dependencies.actix-web]
 features = ["rustls"]
-version = "3.3.2"
+version = "3.3.3"
 
 [dependencies.chrono]
 features = ["serde"]
@@ -42,7 +42,7 @@ version = "0.4.19"
 
 [dependencies.serde]
 features = ["derive"]
-version = "1.0.125"
+version = "1.0.137"
 
 [dependencies.sqlx]
 features = [
@@ -52,4 +52,4 @@ features = [
 version = "0.4"
 
 [build-dependencies]
-ignore = "0.4.17"
+ignore = "0.4.18"

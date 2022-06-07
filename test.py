@@ -31,7 +31,7 @@ async def main():
 
 		# Stress test
 		await test_stress(session, host, auth_headers)
-		return
+		#return
 
 		# Test that auth APIs are properly authed
 		await test_authorization(host, device_token, user_token)
@@ -129,7 +129,7 @@ async def main():
 			assert file['version'] == server_file['Version']
 			# dateutil doesn't handle fractional seconds, so we have to use a sloppy comparison
 			assert (file['date'] - dateutil.parser.isoparse(server_file['ModifiedClient'])).total_seconds() < 1
-			assert file['file_type'] == server_file['Type']
+			assert file['file_type'] == server_file['FileType']
 			assert file['name'] == server_file['VissibleName']
 			assert file['current_page'] == server_file['CurrentPage']
 			assert file['bookmarked'] == server_file['Bookmarked']
@@ -163,7 +163,7 @@ async def main():
 async def websocket_watch(session, host, auth_headers):
 	events = []
 
-	async with session.ws_connect(f"https://{host}/notifications/ws/json/1", headers=auth_headers) as ws:
+	async with session.ws_connect(f"https://{host}/notifications/ws/json/1", headers=auth_headers, ssl=False) as ws:
 		#print("DEBUG: WebSocket: Connected")
 
 		try:
@@ -179,7 +179,7 @@ async def websocket_watch(session, host, auth_headers):
 
 
 async def api_get_service(session, host, service_name):
-	async with session.get(f"https://{host}/service/json/1/foobox") as resp:
+	async with session.get(f"https://{host}/service/json/1/foobox", ssl=False) as resp:
 		assert resp.status == 200
 		return (await resp.json())['Host']
 
@@ -187,12 +187,12 @@ async def api_get_service(session, host, service_name):
 async def api_new_device(session, host, code, device_desc, device_id):
 	req = {"code": code, "deviceDesc": device_desc, "deviceID": device_id}
 
-	async with session.post(f"https://{host}/token/json/2/device/new", json=req) as resp:
+	async with session.post(f"https://{host}/token/json/2/device/new", json=req, ssl=False) as resp:
 		return await resp.text()
 
 
 async def api_new_user(session, host, device_token):
-	async with session.post(f"https://{host}/token/json/2/user/new", headers={"Authorization": f"Bearer {device_token}"}) as resp:
+	async with session.post(f"https://{host}/token/json/2/user/new", headers={"Authorization": f"Bearer {device_token}"}, ssl=False) as resp:
 		return await resp.text()
 
 
@@ -210,7 +210,7 @@ async def api_update_metadata(session, host, auth_headers, id, version, date=Non
 	if parent is not None: req['Parent'] = parent
 
 	#print(f"UpdateMetadataRequest: {req}")
-	async with session.put(f"https://{host}/document-storage/json/2/upload/update-status", json=[req], headers=auth_headers) as resp:
+	async with session.put(f"https://{host}/document-storage/json/2/upload/update-status", json=[req], headers=auth_headers, ssl=False) as resp:
 		assert resp.status == 200
 		j = await resp.json()
 		assert j[0]['Success']
@@ -218,13 +218,13 @@ async def api_update_metadata(session, host, auth_headers, id, version, date=Non
 
 async def api_upload_file(session, host, auth_headers, id, version, data):
 	req = [{"ID": id, "Version": version, "Type": "DocumentType"}]
-	async with session.put(f"https://{host}/document-storage/json/2/upload/request", json=req, headers=auth_headers) as resp:
+	async with session.put(f"https://{host}/document-storage/json/2/upload/request", json=req, headers=auth_headers, ssl=False) as resp:
 		assert resp.status == 200
 		j = await resp.json()
 		assert j[0]['Success']
 		url = j[0]['BlobURLPut']
 	
-	async with session.put(url, data=data) as resp:
+	async with session.put(url, data=data, ssl=False) as resp:
 		assert resp.status == 200
 
 
@@ -234,7 +234,7 @@ async def api_list_files(session, host, auth_headers, id=None):
 	if id is not None:
 		url += f"?doc={id}&withBlob=true"
 	
-	async with session.get(url, headers=auth_headers) as resp:
+	async with session.get(url, headers=auth_headers, ssl=False) as resp:
 		assert resp.status == 200
 
 		return await resp.json()
@@ -243,14 +243,14 @@ async def api_list_files(session, host, auth_headers, id=None):
 async def api_download_file(session, host, auth_headers, id):
 	url = (await api_list_files(session, host, auth_headers, id=id))[0]['BlobURLGet']
 
-	async with session.get(url) as resp:
+	async with session.get(url, ssl=False) as resp:
 		assert resp.status == 200
 		return await resp.read()
 
 
 async def api_delete_file(session, host, auth_headers, id, version):
 	req = [{"ID": id, "Version": version}]
-	async with session.put(f"https://{host}/document-storage/json/2/delete", json=req, headers=auth_headers) as resp:
+	async with session.put(f"https://{host}/document-storage/json/2/delete", json=req, headers=auth_headers, ssl=False) as resp:
 		assert resp.status == 200
 
 
@@ -265,7 +265,7 @@ async def test_authorization(host, device_token, user_token):
 		lambda session: api_upload_file(session, host, bad_auth_headers, "", 1, b""),
 		lambda session: api_update_metadata(session, host, bad_auth_headers, "", 2, file_type="DocumentType"),
 		lambda session: api_delete_file(session, host, bad_auth_headers, "", 1),
-		lambda session: session.ws_connect(f"https://{host}/notifications/ws/json/1", headers=bad_auth_headers),
+		lambda session: session.ws_connect(f"https://{host}/notifications/ws/json/1", headers=bad_auth_headers, ssl=False),
 	]
 
 	for call in calls:
@@ -313,7 +313,7 @@ def get_admin_token():
 
 
 async def get_device_code(session, host, admin_token):
-	async with session.post(f"https://{host}/admin/new_device_code", headers={"Authorization": f"Bearer {admin_token}"}) as resp:
+	async with session.post(f"https://{host}/admin/new_device_code", headers={"Authorization": f"Bearer {admin_token}"}, ssl=False) as resp:
 		return (await resp.json())['code']
 
 
