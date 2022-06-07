@@ -17,7 +17,7 @@ build = "build.rs"
 
 [dependencies]
 actix = "0.10.0"
-actix-http = "2.2.0"
+actix-http = "2.2.1"
 actix-web-actors = "3.0.0"
 anyhow = "1.0.40"
 env_logger = "0.8.3"
