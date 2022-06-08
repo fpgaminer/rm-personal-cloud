@@ -9,15 +9,16 @@ mod request_logger;
 
 use crate::auth::AdminTokenClaims;
 use actix::Actor;
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, web::{self, Data}, App, HttpServer};
 use anyhow::Result;
 use config::ServerConfig;
 use env_logger::Env;
 use log::{error, info};
 use notifications::NotificationServer;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
-use rustls::internal::pemfile::{certs, pkcs8_private_keys};
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use rustls::{Certificate, PrivateKey};
+use rustls_pemfile::{certs, pkcs8_private_keys};
+use sqlx::{sqlite::{SqliteConnectOptions, SqlitePoolOptions}};
 use std::{
 	fs::File,
 	io::BufReader,
@@ -80,16 +81,30 @@ async fn main() -> Result<(), anyhow::Error> {
 
 	// Load SSL keys
 	let ssl_config = {
-		let mut ssl_config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
 		let cert_file = &mut BufReader::new(File::open(&opt.ssl_cert_path).expect("Unable to read SSL cert"));
 		let key_file = &mut BufReader::new(File::open(&opt.ssl_key_path).expect("Unable to read SSL key"));
-		let cert_chain = certs(cert_file).expect("Invalid SSL cert");
-		let mut keys = pkcs8_private_keys(key_file).expect("Invalid SSL key");
-		ssl_config.set_single_cert(cert_chain, keys.remove(0)).expect("Invalid SSL key");
-		ssl_config
+
+		let cert_chain = certs(cert_file)
+			.expect("Invalid SSL cert")
+			.into_iter()
+			.map(Certificate)
+			.collect();
+		let mut keys: Vec<PrivateKey> = pkcs8_private_keys(key_file)
+			.expect("Invalid SSL key")
+			.into_iter()
+			.map(PrivateKey)
+			.collect();
+		
+		rustls::ServerConfig::builder()
+			.with_safe_defaults()
+			.with_no_client_auth()
+			.with_single_cert(cert_chain, keys.remove(0))
+			.expect("Invalid SSL key")
 	};
 
-	let db_pool = SqlitePool::connect_with(SqliteConnectOptions::new().filename(opt.db_path).create_if_missing(true)).await?;
+	// TODO: Some kind of weird bug in sqlx is causing database open errors for anything more than 2 connections.
+	let pool_options = SqlitePoolOptions::new().max_connections(2);
+	let db_pool = pool_options.connect_with(SqliteConnectOptions::new().filename(opt.db_path).create_if_missing(true)).await?;
 	sqlx::query(include_str!("../schema.sql")).execute(&db_pool).await?;
 
 	let server_config = ServerConfig::load_config(&db_pool, opt.hostname).await?;
@@ -108,9 +123,9 @@ async fn main() -> Result<(), anyhow::Error> {
 			.wrap(logger)
 			.app_data(web::JsonConfig::default().content_type(|_| true)) // The tablet sends some odd content-types for JSON requests, so just accept any
 			.app_data(web::PayloadConfig::default().limit(MAXIMUM_REQUEST_SIZE))
-			.data(db_pool.clone())
-			.data(notification_server_addr.clone())
-			.data(server_config.clone())
+			.app_data(Data::new(db_pool.clone()))
+			.app_data(Data::new(notification_server_addr.clone()))
+			.app_data(Data::new(server_config.clone()))
 			.service(api::settings_v1_beta)
 			.service(api::v1_reports)
 			.service(api::service_discovery)
@@ -130,7 +145,7 @@ async fn main() -> Result<(), anyhow::Error> {
 	.bind_rustls(SocketAddr::new(opt.bind_address, opt.https_port), ssl_config)?
 	.run();
 
-	cert_watcher(opt.ssl_cert_path.clone(), server.clone());
+	cert_watcher(opt.ssl_cert_path.clone(), server.handle());
 
 	server.await?;
 
@@ -140,7 +155,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
 /// Watches the SSL certificate file and causes the HttpServer to exit when it changes.
 /// We expect some extenral management (e.g. systemd) to restart us, allowing us to reload the cert.
-fn cert_watcher(filepath: PathBuf, server: actix_web::dev::Server) {
+fn cert_watcher(filepath: PathBuf, server: actix_web::dev::ServerHandle) {
 	thread::spawn(move || {
 		let (tx, rx) = std::sync::mpsc::channel();
 		let mut watcher = watcher(tx, Duration::from_secs(10)).expect("Unable to init file watcher");

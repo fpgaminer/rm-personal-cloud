@@ -213,7 +213,6 @@ pub trait JWTValidation {
 impl<T: DeserializeOwned + JWTValidation> FromRequest for JWTAuthorization<T> {
 	type Error = Error;
 	type Future = future::Ready<Result<Self, Error>>;
-	type Config = ();
 
 	fn from_request(req: &HttpRequest, _: &mut dev::Payload) -> Self::Future {
 		let server_config = ServerConfig::from_req(req);

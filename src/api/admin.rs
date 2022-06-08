@@ -13,27 +13,27 @@ use sqlx::SqlitePool;
 
 pub fn service() -> impl actix_web::dev::HttpServiceFactory {
 	web::scope("/admin")
-		.service(web::resource("/").to(|| {
+		.service(web::resource("/").to(|| async {
 			HttpResponse::Ok()
 				.content_type("text/html")
 				.body(include_str!("../../admin-webapp/dist/index.html"))
 		}))
-		.service(web::resource("/main.bundle.js").to(|| {
+		.service(web::resource("/main.bundle.js").to(|| async {
 			HttpResponse::Ok()
 				.content_type("text/javascript")
 				.body(include_str!("../../admin-webapp/dist/main.bundle.js"))
 		}))
-		.service(web::resource("/main.bundle.js.map").to(|| {
+		.service(web::resource("/main.bundle.js.map").to(|| async {
 			HttpResponse::Ok()
 				.content_type("application/json")
 				.body(include_str!("../../admin-webapp/dist/main.bundle.js.map"))
 		}))
-		.service(web::resource("/pdf.worker.js").to(|| {
+		.service(web::resource("/pdf.worker.js").to(|| async {
 			HttpResponse::Ok()
 				.content_type("text/javascript")
 				.body(include_str!("../../admin-webapp/dist/pdf.worker.js"))
 		}))
-		.service(web::resource("/pdf.worker.js.map").to(|| {
+		.service(web::resource("/pdf.worker.js.map").to(|| async {
 			HttpResponse::Ok()
 				.content_type("application/json")
 				.body(include_str!("../../admin-webapp/dist/pdf.worker.js.map"))
@@ -66,6 +66,5 @@ async fn new_device_code(_admin_token: ValidatedAdminToken, db_pool: web::Data<S
 async fn new_user_token(admin_token: ValidatedAdminToken, server_config: web::Data<ServerConfig>) -> Result<HttpResponse, ServerError> {
 	// Generate a new user token
 	let token = UserTokenClaims::admin_new(&admin_token, &server_config);
-
-	Ok(HttpResponse::Ok().header(http::header::CONTENT_TYPE, "text/plain").body(token))
+	Ok(HttpResponse::Ok().insert_header(http::header::ContentType(mime::TEXT_PLAIN)).body(token))
 }

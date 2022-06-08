@@ -1,6 +1,6 @@
 use crate::{error::ServerError, REQUEST_LOG_EXPIRATION};
 use actix_web::{
-	dev::{Service, ServiceRequest, ServiceResponse, Transform},
+	dev::{self, Service, ServiceRequest, ServiceResponse, Transform},
 	web,
 	web::BytesMut,
 	HttpMessage, HttpRequest, HttpResponse,
@@ -15,7 +15,6 @@ use std::{
 	cell::RefCell,
 	pin::Pin,
 	rc::Rc,
-	task::{Context, Poll},
 };
 
 
@@ -49,14 +48,13 @@ pub async fn default_service(req: HttpRequest, body: web::Bytes, db_pool: web::D
 /// This is some WIP middleware.  The ultimate goal is to be able to put this program into a debug mode where it logs all request and response data into a database.  But currently it doesn't handle the body properly for websockets, I guess because it waits for the whole request body to be read.
 pub struct RequestBodyLogger;
 
-impl<S: 'static, B> Transform<S> for RequestBodyLogger
+impl<S: 'static, B> Transform<S, ServiceRequest> for RequestBodyLogger
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
 	S::Future: 'static,
 	B: 'static,
 {
-	type Request = ServiceRequest;
-	type Response = ServiceResponse<B>;
+	type Response = S::Response;
 	type Error = actix_web::Error;
 	type InitError = ();
 	type Transform = RequestBodyLoggerMiddleware<S>;
@@ -73,23 +71,20 @@ pub struct RequestBodyLoggerMiddleware<S> {
 	service: Rc<RefCell<S>>,
 }
 
-impl<S, B> Service for RequestBodyLoggerMiddleware<S>
+impl<S, B> Service<ServiceRequest> for RequestBodyLoggerMiddleware<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error> + 'static,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error> + 'static,
 	S::Future: 'static,
 	B: 'static,
 {
-	type Request = ServiceRequest;
 	type Response = ServiceResponse<B>;
 	type Error = actix_web::Error;
 	type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
-	fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-		self.service.poll_ready(cx)
-	}
+	dev::forward_ready!(service);
 
-	fn call(&mut self, mut req: ServiceRequest) -> Self::Future {
-		let mut svc = self.service.clone();
+	fn call(&self, mut req: ServiceRequest) -> Self::Future {
+		let svc = self.service.clone();
 
 		Box::pin(async move {
 			let body = req

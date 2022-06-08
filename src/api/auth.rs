@@ -51,7 +51,7 @@ async fn register_new_device(
 	// Generate a new device token
 	let token = DeviceTokenClaims::new_token(payload.device_desc.clone(), payload.device_id.clone(), &server_config);
 
-	Ok(HttpResponse::Ok().header(http::header::CONTENT_TYPE, "text/plain").body(token))
+	Ok(HttpResponse::Ok().insert_header(http::header::ContentType(mime::TEXT_PLAIN)).body(token))
 }
 
 
@@ -72,5 +72,5 @@ async fn new_user_token(device_token: ValidatedDeviceToken, server_config: web::
 	// Generate a new user token
 	let token = UserTokenClaims::new(&device_token.0, &server_config);
 
-	Ok(HttpResponse::Ok().header(http::header::CONTENT_TYPE, "text/plain").body(token))
+	Ok(HttpResponse::Ok().insert_header(http::header::ContentType(mime::TEXT_PLAIN)).body(token))
 }
