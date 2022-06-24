@@ -35,11 +35,11 @@ impl AdminTokenClaims {
 
 impl JWTValidation for AdminTokenClaims {
 	fn validation() -> Validation {
-		Validation {
-			validate_exp: false,
-			sub: Some("Admin Token".to_string()),
-			..Default::default()
-		}
+		let mut v = Validation::new(jsonwebtoken::Algorithm::HS256);
+		v.validate_exp = false;
+		v.set_required_spec_claims(&["sub"]);
+		v.sub = Some("Admin Token".to_string());
+		v
 	}
 }
 
@@ -81,11 +81,11 @@ impl DeviceTokenClaims {
 
 impl JWTValidation for DeviceTokenClaims {
 	fn validation() -> Validation {
-		Validation {
-			validate_exp: false,
-			sub: Some("rM Device Token".to_string()),
-			..Default::default()
-		}
+		let mut v = Validation::new(jsonwebtoken::Algorithm::HS256);
+		v.validate_exp = false;
+		v.set_required_spec_claims(&["sub"]);
+		v.sub = Some("rM Device Token".to_string());
+		v
 	}
 }
 
@@ -152,11 +152,11 @@ impl UserTokenClaims {
 
 impl JWTValidation for UserTokenClaims {
 	fn validation() -> Validation {
-		Validation {
-			validate_exp: true,
-			sub: Some("rM User Token".to_string()),
-			..Default::default()
-		}
+		let mut v = Validation::new(jsonwebtoken::Algorithm::HS256);
+		v.validate_exp = true;
+		v.set_required_spec_claims(&["sub", "exp"]);
+		v.sub = Some("rM User Token".to_string());
+		v
 	}
 }
 
@@ -170,10 +170,9 @@ pub struct FileAccessClaims {
 
 impl JWTValidation for FileAccessClaims {
 	fn validation() -> Validation {
-		Validation {
-			validate_exp: true,
-			..Default::default()
-		}
+		let mut v = Validation::new(jsonwebtoken::Algorithm::HS256);
+		v.validate_exp = true;
+		v
 	}
 }
 
@@ -194,10 +193,8 @@ impl FileAccessClaims {
 	}
 
 	pub fn validate(token: &str, server_config: &ServerConfig) -> Result<Self, jsonwebtoken::errors::Error> {
-		let validation = jsonwebtoken::Validation {
-			validate_exp: true,
-			..Default::default()
-		};
+		let mut validation = Validation::new(jsonwebtoken::Algorithm::HS256);
+		validation.validate_exp = true;
 
 		jsonwebtoken::decode(token, &DecodingKey::from_secret(&server_config.jwt_secret_key), &validation).map(|x| x.claims)
 	}
