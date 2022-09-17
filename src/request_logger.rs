@@ -11,11 +11,7 @@ use futures::{
 	Future, TryStreamExt,
 };
 use sqlx::SqlitePool;
-use std::{
-	cell::RefCell,
-	pin::Pin,
-	rc::Rc,
-};
+use std::{cell::RefCell, pin::Pin, rc::Rc};
 
 
 /// Logs unhandled requests to database so we can inspect later and implement them.

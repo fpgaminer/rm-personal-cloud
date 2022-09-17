@@ -9,8 +9,13 @@ mod request_logger;
 
 use crate::auth::AdminTokenClaims;
 use actix::Actor;
-use actix_web::{middleware::Logger, web::{self, Data}, App, HttpServer};
+use actix_web::{
+	middleware::Logger,
+	web::{self, Data},
+	App, HttpServer,
+};
 use anyhow::Result;
+use clap::Parser;
 use config::ServerConfig;
 use env_logger::Env;
 use log::{error, info};
@@ -18,7 +23,7 @@ use notifications::NotificationServer;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use rustls::{Certificate, PrivateKey};
 use rustls_pemfile::{certs, pkcs8_private_keys};
-use sqlx::{sqlite::{SqliteConnectOptions, SqlitePoolOptions}};
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{
 	fs::File,
 	io::BufReader,
@@ -27,7 +32,6 @@ use std::{
 	thread,
 	time::Duration,
 };
-use structopt::StructOpt;
 
 
 // TODO: Hopefully at some point chrono updates and we can use fancy const fn Duration::seconds() here
@@ -49,26 +53,26 @@ const WEBSOCKET_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(20);
 const WEBSOCKET_CLIENT_TIMEOUT: Duration = Duration::from_secs(40);
 
 
-#[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "rm-personal-cloud")]
+#[derive(Clone, Debug, Parser)]
+#[clap(name = "rm-personal-cloud", version, about, long_about = None)]
 struct Opt {
-	#[structopt(long = "db", parse(from_os_str))]
+	#[clap(long = "db", value_parser)]
 	db_path: PathBuf,
 
-	#[structopt(long = "ssl-cert", parse(from_os_str))]
+	#[clap(long = "ssl-cert", value_parser)]
 	ssl_cert_path: PathBuf,
 
-	#[structopt(long = "ssl-key", parse(from_os_str))]
+	#[clap(long = "ssl-key", value_parser)]
 	ssl_key_path: PathBuf,
 
-	#[structopt(long = "hostname", default_value = "local.appspot.com")]
+	#[clap(long = "hostname", value_parser, default_value = "local.appspot.com")]
 	hostname: String,
 
-	#[structopt(long = "bind")]
 	/// Where to listen on (e.g. 0.0.0.0)
+	#[clap(long = "bind", value_parser)]
 	bind_address: IpAddr,
 
-	#[structopt(long = "https-port", default_value = "8084")]
+	#[clap(long = "https-port", default_value = "8084", value_parser)]
 	https_port: u16,
 }
 
@@ -84,17 +88,13 @@ async fn main() -> Result<(), anyhow::Error> {
 		let cert_file = &mut BufReader::new(File::open(&opt.ssl_cert_path).expect("Unable to read SSL cert"));
 		let key_file = &mut BufReader::new(File::open(&opt.ssl_key_path).expect("Unable to read SSL key"));
 
-		let cert_chain = certs(cert_file)
-			.expect("Invalid SSL cert")
-			.into_iter()
-			.map(Certificate)
-			.collect();
+		let cert_chain = certs(cert_file).expect("Invalid SSL cert").into_iter().map(Certificate).collect();
 		let mut keys: Vec<PrivateKey> = pkcs8_private_keys(key_file)
 			.expect("Invalid SSL key")
 			.into_iter()
 			.map(PrivateKey)
 			.collect();
-		
+
 		rustls::ServerConfig::builder()
 			.with_safe_defaults()
 			.with_no_client_auth()
@@ -104,7 +104,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
 	// TODO: Some kind of weird bug in sqlx is causing database open errors for anything more than 2 connections.
 	let pool_options = SqlitePoolOptions::new().max_connections(2);
-	let db_pool = pool_options.connect_with(SqliteConnectOptions::new().filename(opt.db_path).create_if_missing(true)).await?;
+	let db_pool = pool_options
+		.connect_with(SqliteConnectOptions::new().filename(opt.db_path).create_if_missing(true))
+		.await?;
 	sqlx::query(include_str!("../schema.sql")).execute(&db_pool).await?;
 
 	let server_config = ServerConfig::load_config(&db_pool, opt.hostname).await?;
